@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Page not found — CortexBI</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f7f6f1; --card:#ffffff; --ink:#0e1417; --muted:#5d6a72; --dim:#9aa4aa;
+    --hair:rgba(14,20,23,.085);
+    --blue:#2f6fed; --blue-d:#2257c9; --blue-soft:#ebf2fe;
+    --r-md:16px;
+    --grot:"Space Grotesk",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,monospace;
+    --sh-md:0 2px 6px rgba(14,20,23,.05), 0 14px 32px -16px rgba(14,20,23,.20);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; background:var(--paper); color:var(--ink);
+    font-family:var(--sans); -webkit-font-smoothing:antialiased;
+    display:flex; align-items:center; justify-content:center; padding:32px;
+  }
+  .card{
+    background:var(--card); border:1px solid var(--hair); border-radius:var(--r-md);
+    box-shadow:var(--sh-md); padding:48px 44px; max-width:520px; width:100%; text-align:center;
+  }
+  .code{
+    font-family:var(--mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--blue); background:var(--blue-soft); border-radius:999px;
+    padding:6px 12px; display:inline-block; margin-bottom:22px;
+  }
+  h1{font-family:var(--grot); font-size:28px; line-height:1.25; margin:0 0 12px; font-weight:600}
+  p{color:var(--muted); font-size:15px; line-height:1.6; margin:0 0 28px}
+  a.btn{
+    display:inline-block; background:var(--blue); color:#fff; text-decoration:none;
+    font-weight:500; font-size:15px; padding:12px 24px; border-radius:10px;
+    transition:background .2s cubic-bezier(.4,0,.2,1);
+  }
+  a.btn:hover{background:var(--blue-d)}
+  .foot{margin-top:26px; font-family:var(--mono); font-size:11px; color:var(--dim); letter-spacing:.06em}
+  @media (max-width:480px){ .card{padding:36px 26px} h1{font-size:23px} }
+</style>
+</head>
+<body>
+  <main class="card">
+    <span class="code">404</span>
+    <h1>This page doesn&rsquo;t exist.</h1>
+    <p>The link may be out of date, or the address mistyped. Everything else is still where you left it.</p>
+    <a class="btn" href="/">Back to CortexBI</a>
+    <div class="foot">cortexbi.in</div>
+  </main>
+</body>
+</html>
