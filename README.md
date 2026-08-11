@@ -13,6 +13,7 @@ A static, self-contained site. No build step, no dependencies, no framework.
 ```
 index.html    the full site (styles inlined; fonts from Google Fonts)
 404.html      not-found page
+assets/       brand mark plus the rendered LinkedIn artwork (cards, carousel PDF, posts, cover)
 CNAME         custom domain for GitHub Pages
 .nojekyll     serve files as-is, skipping Jekyll processing
 ```
