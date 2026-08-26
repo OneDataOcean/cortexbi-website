@@ -560,7 +560,7 @@
     <div class="cta-btns">
       <a class="btn primary" id="get-demo" href="https://demo.cortexbi.in">Get a Demo
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M4 12h14M12 5l7 7-7 7" stroke="#2257c9" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
-      <a class="btn ghost" id="talk-team" href="mailto:support@cortexbi.in">Talk to the team</a>
+      <a class="btn ghost" id="talk-team" href="https://cal.com/cortexbi/demo">Talk to the team</a>
     </div>
     <p class="reassure">No rip-and-replace. CortexBI sits over the stack you already run.</p>
   </section>
@@ -660,6 +660,24 @@ addEventListener('scroll',function(){nav.classList.toggle('scrolled',scrollY>8)}
   </div>
 </div>
 
+<!-- Booking dialog for "Talk to the team". Kept separate from #demo-fallback on
+     purpose: that one is an outage message and must keep its mailto, while this
+     one is the scheduling path the CTA copy promises. -->
+<div class="demo-fallback" id="book-dialog" role="dialog" aria-modal="true"
+     aria-labelledby="book-dialog-title" hidden>
+  <div class="demo-fallback-card book-card">
+    <button class="demo-fallback-x" type="button" data-close aria-label="Close">&times;</button>
+    <span class="demo-fallback-badge">Live session</span>
+    <h3 id="book-dialog-title">Pick a time that works.</h3>
+    <p>Thirty minutes on your warehouse, your governance rules, your cloud. Bring the
+       question you actually want answered &mdash; we&rsquo;ll run it end to end.</p>
+    <div class="book-embed" id="book-embed">
+      <p class="book-loading">Loading calendar&hellip;</p>
+    </div>
+    <p class="book-alt">Prefer email? <a href="mailto:support@cortexbi.in">support@cortexbi.in</a></p>
+  </div>
+</div>
+
 <style>
   .demo-fallback{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;
     justify-content:center;padding:24px;background:rgba(14,20,23,.55);
@@ -687,76 +705,203 @@ addEventListener('scroll',function(){nav.classList.toggle('scrolled',scrollY>8)}
     border-radius:8px;transition:color .2s var(--ease),background .2s var(--ease)}
   .demo-fallback-x:hover{color:var(--ink);background:var(--hair-2)}
   #get-demo[aria-busy="true"]{opacity:.72;pointer-events:none}
+  /* Booking dialog. Reuses .demo-fallback / -card / -x above and only overrides
+     what the calendar needs; these rules sit after the base ones so they win.
+     The card is a flex column so the calendar takes whatever height is left
+     under the heading, and the card itself never scrolls — one scroll region. */
+  .demo-fallback-card.book-card{max-width:980px;padding:26px 24px;max-height:92vh;
+    display:flex;flex-direction:column;overflow:hidden}
+  .book-card .demo-fallback-badge{align-self:center}
+  .book-card h3{margin-bottom:8px}
+  .demo-fallback-card.book-card>p{margin-bottom:16px}
+  /* Cal sizes its iframe to its own content and expects the parent to scroll.
+     Leave this unbounded and it lays out full-page (~3300px tall); clip it with
+     overflow:hidden and the last row of times is unreachable. Flexing into a
+     bounded box with overflow-y:auto is what makes it read as a widget. */
+  .book-embed{position:relative;flex:1 1 auto;min-height:0;max-height:620px;
+    overflow-y:auto;overflow-x:hidden;border-radius:12px;
+    background:var(--card);text-align:left}
+  .book-embed>:not(.book-loading){position:relative;z-index:1}
+  /* Must out-specify `.demo-fallback-card p`, same trap as the label rule above. */
+  .demo-fallback-card p.book-loading{position:absolute;inset:0;z-index:0;margin:0;
+    display:flex;align-items:center;justify-content:center;font-family:var(--mono);
+    font-size:12px;letter-spacing:.06em;color:var(--dim)}
+  .demo-fallback-card p.book-alt{font-size:13px;margin:14px 0 0;color:var(--dim)}
+  .book-alt a{color:var(--blue);text-decoration:none}
+  .book-alt a:hover{text-decoration:underline}
+  /* Cal's month_view needs width it can't get on a phone, so the card goes
+     near-fullscreen and the JS switches the layout to column_view to match. */
+  @media (max-width:820px){
+    #book-dialog{padding:12px}
+    .demo-fallback-card.book-card{padding:20px 14px;max-height:94vh}
+    .book-embed{max-height:none}
+  }
 </style>
 
 <script>
 (function () {
-  var DEMO_URL = 'https://demo.cortexbi.in';
+  var DEMO_URL  = 'https://demo.cortexbi.in';
+  var CAL_LINK  = 'cortexbi/demo';   // Cal.com username/event-type slug
   var TIMEOUT_MS = 6000;
 
-  var btn = document.getElementById('get-demo');
-  var modal = document.getElementById('demo-fallback');
-  if (!btn || !modal) return;
-
-  var label = btn.innerHTML;
   var lastFocus = null;
+  var openEl = null;
 
-  function openModal() {
+  function openDialog(el) {
     lastFocus = document.activeElement;
-    modal.hidden = false;
-    var link = modal.querySelector('.demo-fallback-btn');
-    if (link) link.focus();
+    openEl = el;
+    el.hidden = false;
+    // An iframe with the page still scrolling behind it is disorienting.
+    document.body.style.overflow = 'hidden';
+    var first = el.querySelector('.demo-fallback-btn') || el.querySelector('.demo-fallback-x');
+    if (first) first.focus();
     document.addEventListener('keydown', onKeydown);
   }
 
-  function closeModal() {
-    modal.hidden = true;
+  function closeDialog() {
+    if (!openEl) return;
+    openEl.hidden = true;
+    openEl = null;
+    document.body.style.overflow = '';
     document.removeEventListener('keydown', onKeydown);
     if (lastFocus && lastFocus.focus) lastFocus.focus();
   }
 
-  function onKeydown(e) { if (e.key === 'Escape') closeModal(); }
+  function onKeydown(e) { if (e.key === 'Escape') closeDialog(); }
 
-  modal.addEventListener('click', function (e) {
-    // Close on backdrop click or the explicit Close button.
-    if (e.target === modal || e.target.hasAttribute('data-close')) closeModal();
-  });
-
-  // A no-cors request yields an opaque response we can't inspect, but it still
-  // rejects when the host is unreachable — enough to tell "up" from "down".
-  function isDemoReachable() {
-    var controller = new AbortController();
-    var timer = setTimeout(function () { controller.abort(); }, TIMEOUT_MS);
-    return fetch(DEMO_URL, {
-      mode: 'no-cors', cache: 'no-store', redirect: 'follow', signal: controller.signal
-    }).then(function () { clearTimeout(timer); return true; })
-      .catch(function () { clearTimeout(timer); return false; });
+  function wireDialog(el) {
+    el.addEventListener('click', function (e) {
+      // Close on backdrop click or the explicit Close button.
+      if (e.target === el || e.target.hasAttribute('data-close')) closeDialog();
+    });
   }
 
-  btn.addEventListener('click', function (e) {
-    // Let modified clicks (new tab, etc.) use the plain href.
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-    e.preventDefault();
+  // Modified clicks (new tab, etc.) are left alone so they use the plain href.
+  function plainClick(e) {
+    return !(e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0);
+  }
 
-    btn.setAttribute('aria-busy', 'true');
-    btn.textContent = 'Checking…';
+  /* ---------- "Get a Demo": probe the live environment, mailto on failure ---- */
+  var btn = document.getElementById('get-demo');
+  var fallback = document.getElementById('demo-fallback');
+  if (btn && fallback) {
+    wireDialog(fallback);
+    var label = btn.innerHTML;
 
-    isDemoReachable().then(function (up) {
-      btn.removeAttribute('aria-busy');
-      btn.innerHTML = label;
-      if (up) window.location.href = DEMO_URL;
-      else openModal();
-    });
-  });
+    // A no-cors request yields an opaque response we can't inspect, but it still
+    // rejects when the host is unreachable — enough to tell "up" from "down".
+    var isDemoReachable = function () {
+      var controller = new AbortController();
+      var timer = setTimeout(function () { controller.abort(); }, TIMEOUT_MS);
+      return fetch(DEMO_URL, {
+        mode: 'no-cors', cache: 'no-store', redirect: 'follow', signal: controller.signal
+      }).then(function () { clearTimeout(timer); return true; })
+        .catch(function () { clearTimeout(timer); return false; });
+    };
 
-  // "Talk to the team" is a contact action, not a demo launch — no reachability
-  // check, just the same dialog. The mailto href stays as the no-JS fallback.
-  var talk = document.getElementById('talk-team');
-  if (talk) {
-    talk.addEventListener('click', function (e) {
-      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    btn.addEventListener('click', function (e) {
+      if (!plainClick(e)) return;
       e.preventDefault();
-      openModal();
+
+      btn.setAttribute('aria-busy', 'true');
+      btn.textContent = 'Checking…';
+
+      isDemoReachable().then(function (up) {
+        btn.removeAttribute('aria-busy');
+        btn.innerHTML = label;
+        if (up) window.location.href = DEMO_URL;
+        else openDialog(fallback);
+      });
+    });
+  }
+
+  /* ---------- "Talk to the team": Cal.com scheduler in a dialog -------------- */
+  var talk = document.getElementById('talk-team');
+  var book = document.getElementById('book-dialog');
+  if (talk && book) {
+    wireDialog(book);
+
+    // Cal's loader. Defining it costs nothing: embed.js is only fetched on the
+    // first Cal(...) call, so the page still loads with no third-party script.
+    (function (C, A, L) {
+      var p = function (a, ar) { a.q.push(ar); };
+      var d = C.document;
+      C.Cal = C.Cal || function () {
+        var cal = C.Cal, ar = arguments;
+        if (!cal.loaded) {
+          cal.ns = {}; cal.q = cal.q || [];
+          d.head.appendChild(d.createElement('script')).src = A;
+          cal.loaded = true;
+        }
+        if (ar[0] === L) {
+          var api = function () { p(api, arguments); };
+          var namespace = ar[1];
+          api.q = api.q || [];
+          if (typeof namespace === 'string') {
+            cal.ns[namespace] = cal.ns[namespace] || api;
+            p(cal.ns[namespace], ar);
+            p(cal, ['initNamespace', namespace]);
+          } else { p(cal, ar); }
+          return;
+        }
+        p(cal, ar);
+      };
+    })(window, 'https://app.cal.com/embed/embed.js', 'init');
+
+    var inited = false, mounted = false;
+
+    // Fired on hover/focus so the fetch overlaps the pointer travel.
+    function warmCal() {
+      if (inited) return;
+      inited = true;
+      Cal('init', 'demo', { origin: 'https://app.cal.com' });
+    }
+
+    // Only safe once the dialog is visible: Cal measures its container, and a
+    // still-hidden one gives the iframe zero height.
+    function mountCal() {
+      if (mounted) return;
+      mounted = true;
+      warmCal();
+      var layout = window.matchMedia('(max-width: 820px)').matches
+        ? 'column_view' : 'month_view';
+
+      // theme goes on the inline config too, not just the ui call below: the
+      // element is classed light/dark at mount time, before `ui` is applied.
+      Cal.ns.demo('inline', {
+        elementOrSelector: '#book-embed',
+        calLink: CAL_LINK,
+        config: { layout: layout, theme: 'light' }
+      });
+      Cal.ns.demo('ui', {
+        theme: 'light',                                          // site is light-only
+        cssVarsPerTheme: { light: { 'cal-brand': '#2f6fed' } },   // --blue
+        hideEventTypeDetails: false,
+        layout: layout
+      });
+      // Watch the container rather than listening for linkReady: that event
+      // never fires if the link 404s, which would strand "Loading calendar…"
+      // on top of Cal's own error message.
+      var ph = book.querySelector('.book-loading');
+      var host = document.getElementById('book-embed');
+      if (ph && host) {
+        var obs = new MutationObserver(function () {
+          if (!host.querySelector('cal-inline, iframe')) return;
+          if (ph.parentNode) ph.parentNode.removeChild(ph);
+          obs.disconnect();
+        });
+        obs.observe(host, { childList: true, subtree: true });
+      }
+    }
+
+    talk.addEventListener('mouseenter', warmCal);
+    talk.addEventListener('focus', warmCal);
+
+    talk.addEventListener('click', function (e) {
+      if (!plainClick(e)) return;
+      e.preventDefault();
+      openDialog(book);   // un-hide first ...
+      mountCal();         // ... then let Cal measure a laid-out container
     });
   }
 })();
