@@ -647,7 +647,7 @@ addEventListener('scroll',function(){nav.classList.toggle('scrolled',scrollY>8)}
      section already makes, and never advertises downtime to a prospect. -->
 <div class="demo-fallback" id="demo-fallback" role="dialog" aria-modal="true"
      aria-labelledby="demo-fallback-title" hidden>
-  <div class="demo-fallback-card">
+  <div class="demo-fallback-card" tabindex="-1">
     <button class="demo-fallback-x" type="button" data-close aria-label="Close">&times;</button>
     <span class="demo-fallback-badge">Live session</span>
     <h3 id="demo-fallback-title">Let&rsquo;s run it on your usecase.</h3>
@@ -665,7 +665,7 @@ addEventListener('scroll',function(){nav.classList.toggle('scrolled',scrollY>8)}
      one is the scheduling path the CTA copy promises. -->
 <div class="demo-fallback" id="book-dialog" role="dialog" aria-modal="true"
      aria-labelledby="book-dialog-title" hidden>
-  <div class="demo-fallback-card book-card">
+  <div class="demo-fallback-card book-card" tabindex="-1">
     <button class="demo-fallback-x" type="button" data-close aria-label="Close">&times;</button>
     <span class="demo-fallback-badge">Live session</span>
     <h3 id="book-dialog-title">Pick a time that works.</h3>
@@ -753,7 +753,11 @@ addEventListener('scroll',function(){nav.classList.toggle('scrolled',scrollY>8)}
     el.hidden = false;
     // An iframe with the page still scrolling behind it is disorienting.
     document.body.style.overflow = 'hidden';
-    var first = el.querySelector('.demo-fallback-btn') || el.querySelector('.demo-fallback-x');
+    // Prefer the dialog's primary action (the mailto button on the outage
+    // dialog); dialogs without one (the booking dialog, whose content loads
+    // async) get focus on the card itself so a reflex Enter/Space doesn't
+    // land on the close button and immediately dismiss what was just opened.
+    var first = el.querySelector('.demo-fallback-btn') || el.querySelector('.demo-fallback-card');
     if (first) first.focus();
     document.addEventListener('keydown', onKeydown);
   }
@@ -885,8 +889,12 @@ addEventListener('scroll',function(){nav.classList.toggle('scrolled',scrollY>8)}
       var ph = book.querySelector('.book-loading');
       var host = document.getElementById('book-embed');
       if (ph && host) {
+        var loadTimer = setTimeout(function () {
+          ph.textContent = "Calendar didn't load — email us instead below.";
+        }, TIMEOUT_MS);
         var obs = new MutationObserver(function () {
           if (!host.querySelector('cal-inline, iframe')) return;
+          clearTimeout(loadTimer);
           if (ph.parentNode) ph.parentNode.removeChild(ph);
           obs.disconnect();
         });
